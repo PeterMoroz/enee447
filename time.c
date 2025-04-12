@@ -46,19 +46,27 @@
 uint64_t
 get_time( )
 {
-	// your code goes here
+	// TO DO:
+	// 1. memory barriers (DMB) if needed
+	// 2. consider case when clk hi changed after reading clk_lo
+	// 3. might be consider something like CMPXCHG to fix previous issue ?
+	unsigned long clk_hi = GET32(CLOCK_HI);
+	unsigned long clk_lo = GET32(CLOCK_LO);
+	// TO DO: dmb here
+	uint64_t ticks = clk_hi;
+	return (ticks << 32) | clk_lo;
 }
 
 unsigned long
 now_usec () 
 {
-	// your code goes here
+	return get_time();
 }
 
 unsigned long
 now_hrs () 
 {
-	// your code goes here
+	return get_time() * 3600 * 1000000;
 }
 
 void
@@ -72,7 +80,10 @@ clear_timer_interrupts()
 void
 wait( unsigned long usecs )
 {
-	// your code goes here
+	unsigned long tstart = now_usec();
+	while (tstart + usecs > now_usec()) {
+		__asm volatile("nop");
+	}
 }
 
 #define INT_IRQ	0x0F
