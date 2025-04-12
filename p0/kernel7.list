@@ -1,0 +1,222 @@
+
+kernel7.elf:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00080000 <_start>:
+   80000:	ee100fb0 	mrc	15, 0, r0, cr0, cr0, {5}
+   80004:	e7e10050 	ubfx	r0, r0, #0, #2
+   80008:	e3500000 	cmp	r0, #0
+   8000c:	0a000001 	beq	80018 <core0>
+   80010:	0affffff 	beq	80014 <hang>
+
+00080014 <hang>:
+   80014:	eafffffe 	b	80014 <hang>
+
+00080018 <core0>:
+   80018:	e3a0d80d 	mov	sp, #851968	; 0xd0000
+   8001c:	eb00001d 	bl	80098 <notmain>
+   80020:	eafffffb 	b	80014 <hang>
+
+00080024 <PUT32>:
+   80024:	e5801000 	str	r1, [r0]
+   80028:	e12fff1e 	bx	lr
+
+0008002c <GET32>:
+   8002c:	e5900000 	ldr	r0, [r0]
+   80030:	e12fff1e 	bx	lr
+
+00080034 <dummy>:
+   80034:	e12fff1e 	bx	lr
+
+00080038 <GETPC>:
+   80038:	e1a0000e 	mov	r0, lr
+   8003c:	e12fff1e 	bx	lr
+
+00080040 <cpu_id>:
+   80040:	ee100fb0 	mrc	15, 0, r0, cr0, cr0, {5}
+   80044:	e7e10050 	ubfx	r0, r0, #0, #2
+   80048:	e12fff1e 	bx	lr
+
+0008004c <enable_irq>:
+   8004c:	e10f0000 	mrs	r0, CPSR
+   80050:	e3c00080 	bic	r0, r0, #128	; 0x80
+   80054:	e121f000 	msr	CPSR_c, r0
+   80058:	e12fff1e 	bx	lr
+
+0008005c <enable_fiq>:
+   8005c:	e10f0000 	mrs	r0, CPSR
+   80060:	e3c00040 	bic	r0, r0, #64	; 0x40
+   80064:	e121f000 	msr	CPSR_c, r0
+   80068:	e12fff1e 	bx	lr
+
+0008006c <disable_irq>:
+   8006c:	e10f0000 	mrs	r0, CPSR
+   80070:	e3800080 	orr	r0, r0, #128	; 0x80
+   80074:	e121f000 	msr	CPSR_c, r0
+   80078:	e12fff1e 	bx	lr
+
+0008007c <disable_fiq>:
+   8007c:	e10f0000 	mrs	r0, CPSR
+   80080:	e3800040 	orr	r0, r0, #64	; 0x40
+   80084:	e121f000 	msr	CPSR_c, r0
+   80088:	e12fff1e 	bx	lr
+
+0008008c <idle>:
+   8008c:	e320f003 	wfi
+   80090:	e12fff1e 	bx	lr
+
+00080094 <BRANCHTO>:
+   80094:	e12fff10 	bx	r0
+
+00080098 <notmain>:
+   80098:	e92d4010 	push	{r4, lr}
+   8009c:	eb000064 	bl	80234 <init_time>
+   800a0:	e3a0000a 	mov	r0, #10
+   800a4:	eb00002c 	bl	8015c <blink_led>
+   800a8:	e59f4018 	ldr	r4, [pc, #24]	; 800c8 <notmain+0x30>
+   800ac:	eb000006 	bl	800cc <led_on>
+   800b0:	e1a00004 	mov	r0, r4
+   800b4:	eb00005d 	bl	80230 <wait>
+   800b8:	eb000017 	bl	8011c <led_off>
+   800bc:	e1a00004 	mov	r0, r4
+   800c0:	eb00005a 	bl	80230 <wait>
+   800c4:	eafffff8 	b	800ac <notmain+0x14>
+   800c8:	000f4240 	andeq	r4, pc, r0, asr #4
+
+000800cc <led_on>:
+   800cc:	e92d4010 	push	{r4, lr}
+   800d0:	e59f4038 	ldr	r4, [pc, #56]	; 80110 <led_on+0x44>
+   800d4:	e1a00004 	mov	r0, r4
+   800d8:	ebffffd3 	bl	8002c <GET32>
+   800dc:	e1a01000 	mov	r1, r0
+   800e0:	e3c1130e 	bic	r1, r1, #939524096	; 0x38000000
+   800e4:	e1a00004 	mov	r0, r4
+   800e8:	e3811302 	orr	r1, r1, #134217728	; 0x8000000
+   800ec:	ebffffcc 	bl	80024 <PUT32>
+   800f0:	e3a01202 	mov	r1, #536870912	; 0x20000000
+   800f4:	e59f0018 	ldr	r0, [pc, #24]	; 80114 <led_on+0x48>
+   800f8:	ebffffc9 	bl	80024 <PUT32>
+   800fc:	e3a01202 	mov	r1, #536870912	; 0x20000000
+   80100:	e59f0010 	ldr	r0, [pc, #16]	; 80118 <led_on+0x4c>
+   80104:	ebffffc6 	bl	80024 <PUT32>
+   80108:	e8bd4010 	pop	{r4, lr}
+   8010c:	e12fff1e 	bx	lr
+   80110:	3f200008 	svccc	0x00200008
+   80114:	3f200028 	svccc	0x00200028
+   80118:	3f20001c 	svccc	0x0020001c
+
+0008011c <led_off>:
+   8011c:	e92d4010 	push	{r4, lr}
+   80120:	e59f402c 	ldr	r4, [pc, #44]	; 80154 <led_off+0x38>
+   80124:	e1a00004 	mov	r0, r4
+   80128:	ebffffbf 	bl	8002c <GET32>
+   8012c:	e1a01000 	mov	r1, r0
+   80130:	e3c1130e 	bic	r1, r1, #939524096	; 0x38000000
+   80134:	e1a00004 	mov	r0, r4
+   80138:	e3811302 	orr	r1, r1, #134217728	; 0x8000000
+   8013c:	ebffffb8 	bl	80024 <PUT32>
+   80140:	e3a01202 	mov	r1, #536870912	; 0x20000000
+   80144:	e59f000c 	ldr	r0, [pc, #12]	; 80158 <led_off+0x3c>
+   80148:	ebffffb5 	bl	80024 <PUT32>
+   8014c:	e8bd4010 	pop	{r4, lr}
+   80150:	e12fff1e 	bx	lr
+   80154:	3f200008 	svccc	0x00200008
+   80158:	3f200028 	svccc	0x00200028
+
+0008015c <blink_led>:
+   8015c:	e92d41f0 	push	{r4, r5, r6, r7, r8, lr}
+   80160:	e1a05000 	mov	r5, r0
+   80164:	e59f0080 	ldr	r0, [pc, #128]	; 801ec <blink_led+0x90>
+   80168:	ebffffaf 	bl	8002c <GET32>
+   8016c:	e1a01000 	mov	r1, r0
+   80170:	e3c1130e 	bic	r1, r1, #939524096	; 0x38000000
+   80174:	e59f0070 	ldr	r0, [pc, #112]	; 801ec <blink_led+0x90>
+   80178:	e3811302 	orr	r1, r1, #134217728	; 0x8000000
+   8017c:	ebffffa8 	bl	80024 <PUT32>
+   80180:	e3a01202 	mov	r1, #536870912	; 0x20000000
+   80184:	e59f0064 	ldr	r0, [pc, #100]	; 801f0 <blink_led+0x94>
+   80188:	ebffffa5 	bl	80024 <PUT32>
+   8018c:	e3550000 	cmp	r5, #0
+   80190:	0a000010 	beq	801d8 <blink_led+0x7c>
+   80194:	e2454001 	sub	r4, r5, #1
+   80198:	e59f7054 	ldr	r7, [pc, #84]	; 801f4 <blink_led+0x98>
+   8019c:	e59f5054 	ldr	r5, [pc, #84]	; 801f8 <blink_led+0x9c>
+   801a0:	e59f6048 	ldr	r6, [pc, #72]	; 801f0 <blink_led+0x94>
+   801a4:	e3a01202 	mov	r1, #536870912	; 0x20000000
+   801a8:	e1a00007 	mov	r0, r7
+   801ac:	ebffff9c 	bl	80024 <PUT32>
+   801b0:	e1a00005 	mov	r0, r5
+   801b4:	eb00001d 	bl	80230 <wait>
+   801b8:	e3a01202 	mov	r1, #536870912	; 0x20000000
+   801bc:	e1a00006 	mov	r0, r6
+   801c0:	ebffff97 	bl	80024 <PUT32>
+   801c4:	e2444001 	sub	r4, r4, #1
+   801c8:	e1a00005 	mov	r0, r5
+   801cc:	eb000017 	bl	80230 <wait>
+   801d0:	e3740001 	cmn	r4, #1
+   801d4:	1afffff2 	bne	801a4 <blink_led+0x48>
+   801d8:	e3a01202 	mov	r1, #536870912	; 0x20000000
+   801dc:	e59f000c 	ldr	r0, [pc, #12]	; 801f0 <blink_led+0x94>
+   801e0:	ebffff8f 	bl	80024 <PUT32>
+   801e4:	e8bd41f0 	pop	{r4, r5, r6, r7, r8, lr}
+   801e8:	e12fff1e 	bx	lr
+   801ec:	3f200008 	svccc	0x00200008
+   801f0:	3f200028 	svccc	0x00200028
+   801f4:	3f20001c 	svccc	0x0020001c
+   801f8:	0000c350 	andeq	ip, r0, r0, asr r3
+
+000801fc <get_time>:
+   801fc:	e12fff1e 	bx	lr
+
+00080200 <now_usec>:
+   80200:	e12fff1e 	bx	lr
+
+00080204 <now_hrs>:
+   80204:	e3a00000 	mov	r0, #0
+   80208:	e12fff1e 	bx	lr
+
+0008020c <clear_timer_interrupts>:
+   8020c:	e92d4010 	push	{r4, lr}
+   80210:	e3e0121f 	mvn	r1, #-268435455	; 0xf0000001
+   80214:	e3a001d1 	mov	r0, #1073741876	; 0x40000034
+   80218:	ebffff81 	bl	80024 <PUT32>
+   8021c:	e3a01102 	mov	r1, #-2147483648	; 0x80000000
+   80220:	e3a001e1 	mov	r0, #1073741880	; 0x40000038
+   80224:	ebffff7e 	bl	80024 <PUT32>
+   80228:	e8bd4010 	pop	{r4, lr}
+   8022c:	e12fff1e 	bx	lr
+
+00080230 <wait>:
+   80230:	e12fff1e 	bx	lr
+
+00080234 <init_time>:
+   80234:	e12fff1e 	bx	lr
+
+Disassembly of section .ARM.attributes:
+
+00000000 <.ARM.attributes>:
+   0:	00002b41 	andeq	r2, r0, r1, asr #22
+   4:	61656100 	cmnvs	r5, r0, lsl #2
+   8:	01006962 	tsteq	r0, r2, ror #18
+   c:	00000021 	andeq	r0, r0, r1, lsr #32
+  10:	4d524105 	ldfmie	f4, [r2, #-20]	; 0xffffffec
+  14:	54367620 	ldrtpl	r7, [r6], #-1568	; 0xfffff9e0
+  18:	08060032 	stmdaeq	r6, {r1, r4, r5}
+  1c:	02090108 	andeq	r0, r9, #8, 2
+  20:	01140412 	tsteq	r4, r2, lsl r4
+  24:	03170115 	tsteq	r7, #1073741829	; 0x40000005
+  28:	011a0118 	tsteq	sl, r8, lsl r1
+
+Disassembly of section .comment:
+
+00000000 <.comment>:
+   0:	3a434347 	bcc	10d0d24 <FIQSTACK0+0xfe0d24>
+   4:	4e472820 	cdpmi	8, 4, cr2, cr7, cr0, {1}
+   8:	31202955 			; <UNDEFINED> instruction: 0x31202955
+   c:	2e322e30 	mrccs	14, 1, r2, cr2, cr0, {1}
+  10:	30322031 	eorscc	r2, r2, r1, lsr r0
+  14:	31313032 	teqcc	r1, r2, lsr r0
+  18:	Address 0x0000000000000018 is out of bounds.
+
