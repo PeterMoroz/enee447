@@ -1,22 +1,112 @@
 
+//
+// terminal I/O example
+//
+
+
+
+#include "utils.h"
 #include "time.h"
 #include "led.h"
+#include "uart.h"
+
 
 int
 notmain ( void )
 {
+	int ch;
+
 	// init funcs
+    init_uart();
 	init_time();
 
 	// finished initialization
-	blink_led(10);
+	blink_led(6);
 
 	// do some work
+    uart_puts("\n");
+    uart_puts("\n");
+    uart_puts("Peter's system is booting.\n");
+    uart_puts("Please hit enter to continue.\n");
+    uart_puts("\n");
+
+    ch = uart_recv();
+
+    uart_puts("Running datasize test. Lengths in nibbles.\n");
+    {
+    	char c;
+		short s;
+		int i,j;
+		long l;
+		long long x;
+
+		uart_puts("char      ");
+		for (j=0, c=-1; j<18 && c!=0; j++) {
+			c = (c << 4) & 0xfffffffffffffff0;
+		}
+		uart_put32x(j); uart_puts("\n");
+
+		uart_puts("short     ");
+		for (j=0, s=-1; j<18 && s!=0; j++) {
+			s = (s << 4) & 0xfffffffffffffff0;
+		}
+		uart_put32x(j); uart_puts("\n");
+
+		uart_puts("int       ");
+		for (j=0, i=-1; j<18 && i!=0; j++) {
+			i = (i << 4) & 0xfffffffffffffff0;
+		}
+		uart_put32x(j); uart_puts("\n");
+
+		uart_puts("long      ");
+		for (j=0, l=-1; j<18 && l!=0; j++) {
+			l = (l << 4) & 0xfffffffffffffff0;
+		}
+		uart_put32x(j); uart_puts("\n");
+
+		uart_puts("long long ");
+		for (j=0, x=-1; j<18 && x!=0; j++) {
+			x = (x << 4) & 0xfffffffffffffff0;
+		}
+		uart_put32x(j); uart_puts("\n");
+
+		uart_puts("\n");
+    }
+
+    uart_puts("Running pointer test. Length in bytes.\n");
+	uart_puts("void *    ");
+
+	void * ptr = (void *)GETPC();
+	uart_put32x(sizeof(ptr)); uart_puts("\n");
+	uart_puts("PC value: ");
+	uart_put32x((unsigned long)ptr); uart_puts("\n");
+	uart_puts("\n");
+
+
+    uart_puts("Running ECHO server.\n");
     while (1) {
-		led_on();
-		wait( ONE_SEC );
-		led_off();
-		wait( ONE_SEC );
+		while(1) {
+			if((now_usec()&0x00007000)==0x00007000) {
+			break;
+		}}
+		ch=uart_recv();
+
+		/* Convert to uppercase */
+		if ((ch>='a') && (ch<='z')) ch-=32;
+
+		while(1) {
+			if((now_usec()&0x00007000)==0x00007000) {
+			break;
+		}}
+		PUT32(0x3F215040,ch);
+
+		if (ch < 20) {
+			while(1) {
+				if((now_usec()&0x00007000)==0x00007000) {
+					break;
+			}}
+			PUT32(0x3F215040,0x0A);
+		}
     }
 
     return(0);

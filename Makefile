@@ -1,7 +1,7 @@
-ARMGNU = arm-none-eabi
+ARMGNU = arm-linux-gnueabi
 
 TARGET = kernel7.bin
-SDTARGET = /Volumes/boot/kernel7.img
+SDTARGET = /media/peter/4DFF-0A36/kernel7.img
 DEPS = *.h
 
 COPS = -Wall -O2 -nostdlib -nostartfiles -ffreestanding 
