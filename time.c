@@ -46,27 +46,32 @@
 uint64_t
 get_time( )
 {
-	// TO DO:
-	// 1. memory barriers (DMB) if needed
-	// 2. consider case when clk hi changed after reading clk_lo
-	// 3. might be consider something like CMPXCHG to fix previous issue ?
-	unsigned long clk_hi = GET32(CLOCK_HI);
-	unsigned long clk_lo = GET32(CLOCK_LO);
-	// TO DO: dmb here
-	uint64_t ticks = clk_hi;
-	return (ticks << 32) | clk_lo;
+	unsigned long hi, lo;
+	uint64_t thi, tlo;
+
+	hi = GET32(CLOCK_HI);
+	lo = GET32(CLOCK_LO);
+	if (hi != GET32(CLOCK_HI)) {
+		hi = GET32(CLOCK_HI);
+		lo = GET32(CLOCK_LO);
+	}
+
+	thi = (((uint64_t)hi) << 32) & 0xFFFFFFFF00000000;
+	tlo = ((uint64_t)lo) & 0x00000000FFFFFFFF;
+
+	return thi | tlo;
 }
 
 unsigned long
 now_usec () 
 {
-	return get_time();
+	return GET32(CLOCK_LO);
 }
 
 unsigned long
 now_hrs () 
 {
-	return get_time() * 3600 * 1000000;
+	return GET32(CLOCK_HI);
 }
 
 void
@@ -80,10 +85,30 @@ clear_timer_interrupts()
 void
 wait( unsigned long usecs )
 {
-	unsigned long tstart = now_usec();
-	while (tstart + usecs > now_usec()) {
-		__asm volatile("nop");
-	}
+	uint64_t until = (uint64_t)usecs + get_time();
+
+	while (get_time() < until)
+	;
+
+	return;
+}
+
+void
+int_wait ( unsigned int time )
+{
+	unsigned int ctl_value;
+
+	time *= 38;	// adjust for difference between main clock and countdown timer
+
+	ctl_value = CTL_INTERRUPT | CTL_ENABLE | (time & CTL_TIMEMASK);
+
+	PUT32( TIMER_CTL, ctl_value );
+
+	idle();		// calls a wfi instruction
+
+	clear_timer_interrupts();
+
+	return;
 }
 
 #define INT_IRQ	0x0F

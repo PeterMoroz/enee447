@@ -11,7 +11,7 @@
 #define GPCLR1  0x3F20002C
 
 void
-led_on()
+init_led()
 {
 	unsigned int ra;
 
@@ -20,8 +20,13 @@ led_on()
 	ra|=1<<27;
 	PUT32(GPFSEL2,ra);
 
+	PUT32(GPSET0,1<<29);
 	PUT32(GPCLR0,1<<29);
+}
 
+void
+led_on()
+{
 	PUT32(GPSET0,1<<29);
 
 	return;
@@ -30,20 +35,13 @@ led_on()
 void
 led_off()
 {
-	unsigned int ra;
-
-	ra=GET32(GPFSEL2);
-	ra&=~(7<<27);
-	ra|=1<<27;
-	PUT32(GPFSEL2,ra);
-
 	PUT32(GPCLR0,1<<29);
 
 	return;
 }
 
 void
-blink_led(unsigned int reps)
+blink_led_stall(unsigned int reps)
 {
 	unsigned int ra;
 
@@ -55,14 +53,12 @@ blink_led(unsigned int reps)
 	PUT32(GPCLR0,1<<29);
 
 	while(reps--) {
-		PUT32(GPSET0,1<<29);
+		led_on();
 		wait(50 * ONE_MSEC);
 
-		PUT32(GPCLR0,1<<29);
+		led_off();
 		wait(50 * ONE_MSEC);
 	}
-
-	PUT32(GPCLR0,1<<29);
 
 	return;
 }

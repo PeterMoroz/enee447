@@ -70,6 +70,84 @@ void uart_flush ( void )
     }
 }
 //------------------------------------------------------------------------
+void uart_put8x ( unsigned int d )
+{
+    //unsigned int ra;
+    unsigned int rb;
+    unsigned int rc;
+
+    rb=8;
+    while(1)
+    {
+        rb-=4;
+        rc=(d>>rb)&0xF;
+        if(rc>9) rc+=0x37; else rc+=0x30;
+        uart_send(rc);
+        if(rb==0) break;
+    }
+}
+//------------------------------------------------------------------------
+void uart_put12x ( unsigned int d )
+{
+    //unsigned int ra;
+    unsigned int rb;
+    unsigned int rc;
+
+    rb=12;
+    while(1)
+    {
+        rb-=4;
+        rc=(d>>rb)&0xF;
+        if(rc>9) rc+=0x37; else rc+=0x30;
+        uart_send(rc);
+        if(rb==0) break;
+    }
+}
+//------------------------------------------------------------------------
+void uart_put2d ( unsigned long d )
+{
+    unsigned int ra=10;
+    unsigned int rb;
+    unsigned int rc;
+
+    rb=2;
+    while(rb--)
+    {
+        rc=(unsigned int)(d/ra) % 10;
+        rc+=0x30;
+        uart_send(rc);
+		ra = (unsigned int)(ra / 10);
+    }
+}
+//------------------------------------------------------------------------
+void uart_put3d ( unsigned long d )
+{
+    unsigned int rc;
+
+	rc=(unsigned int)(d/100) % 10;
+	rc+=0x30;
+	uart_send(rc);
+	rc=(unsigned int)(d/10) % 10;
+	rc+=0x30;
+	uart_send(rc);
+	rc=(unsigned int)d % 10;
+	rc+=0x30;
+	uart_send(rc);
+
+#if 0
+    unsigned int ra=100;
+    unsigned int rb;
+    rb=3;
+    while(rb--)
+    {
+        rc=(unsigned int)(d/ra) % 10;
+        rc+=0x30;
+        uart_send(rc);
+		ra = (unsigned int)(ra / 10);
+    }
+#endif
+}
+//------------------------------------------------------------------------
 void uart_put32x ( unsigned int d )
 {
     //unsigned int ra;
@@ -85,7 +163,6 @@ void uart_put32x ( unsigned int d )
         uart_send(rc);
         if(rb==0) break;
     }
-//    uart_send(0x20);
 }
 //------------------------------------------------------------------------
 void uart_put64x ( unsigned long long d )
@@ -103,7 +180,6 @@ void uart_put64x ( unsigned long long d )
         uart_send(rc);
         if(rb==0) break;
     }
-//   uart_send(0x20);
 }
 //------------------------------------------------------------------------
 void uart_puts ( char *c )
@@ -111,6 +187,19 @@ void uart_puts ( char *c )
     unsigned int rc;
 
     while (*c) {
+    	rc = *c++;
+		if ((rc & 0xff) == '\n') {
+			uart_send('\r');
+		}
+		uart_send(rc);
+    }
+}
+//------------------------------------------------------------------------
+void uart_putns ( char *c , int n)
+{
+    unsigned int rc;
+
+    while ((n-- > 0) && *c) {
     	rc = *c++;
 		if ((rc & 0xff) == '\n') {
 			uart_send('\r');

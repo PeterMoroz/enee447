@@ -1,126 +1,89 @@
-
 //
-// terminal I/O example
+// timeout queue example
 //
-
-
 
 #include "utils.h"
 #include "time.h"
 #include "led.h"
 #include "uart.h"
+#include "log.h"
 
 
-int
-notmain ( void )
+#include "os.h"
+#include "callout.h"
+#include "events.h"
+
+
+
+
+void
+notmain()
 {
-	int ch;
+	namenum_t data;
+    int timeout;
 
-	// init funcs
+    // init functions
+	init_led();
     init_uart();
-	init_time();
+    init_time();
+    init_errno();
+    init_timeoutq();
 
-	// finished initialization
-	blink_led(6);
+	blink_led_stall(5);
 
-	// do some work
+    // wake up
     uart_puts("\n");
     uart_puts("\n");
-    uart_puts("Peter's system is booting.\n");
-    uart_puts("Please hit enter to continue.\n");
-    uart_puts("\n");
+	log("...", NOVAL);
+    log("System is booting, cpuid = ", cpu_id());
+    log("Please hit enter to continue.\n", NOVAL);
 
-    ch = uart_recv();
+    uart_recv();
 
-    uart_puts("Running datasize test. Lengths in nibbles.\n");
-    {
-    	char c;
-		short s;
-		int i,j;
-		long l;
-		long long x;
-
-		uart_puts("char      ");
-		for (j=0, c=-1; j<18 && c!=0; j++) {
-			c = (c << 4) & 0xfffffffffffffff0;
-		}
-		uart_put32x(j); uart_puts("\n");
-
-		uart_puts("short     ");
-		for (j=0, s=-1; j<18 && s!=0; j++) {
-			s = (s << 4) & 0xfffffffffffffff0;
-		}
-		uart_put32x(j); uart_puts("\n");
-
-		uart_puts("int       ");
-		for (j=0, i=-1; j<18 && i!=0; j++) {
-			i = (i << 4) & 0xfffffffffffffff0;
-		}
-		uart_put32x(j); uart_puts("\n");
-
-		uart_puts("long      ");
-		for (j=0, l=-1; j<18 && l!=0; j++) {
-			l = (l << 4) & 0xfffffffffffffff0;
-		}
-		uart_put32x(j); uart_puts("\n");
-
-		uart_puts("long long ");
-		for (j=0, x=-1; j<18 && x!=0; j++) {
-			x = (x << 4) & 0xfffffffffffffff0;
-		}
-		uart_put32x(j); uart_puts("\n");
-
-		uart_puts("\n");
-    }
-
-    uart_puts("Running pointer test. Length in bytes.\n");
-	uart_puts("void *    ");
-
-	void * ptr = (void *)GETPC();
+	void * ptr = GETPC;
 	uart_put32x(sizeof(ptr)); uart_puts("\n");
-	uart_puts("PC value: ");
 	uart_put32x((unsigned long)ptr); uart_puts("\n");
-	uart_puts("\n");
+	ptr = GETPC();
+	uart_put32x((unsigned long)ptr); uart_puts("\n");
 
+    // create some timeout events
+	data.num = 3;
+	bring_timeoutq_current();
+    create_timeoutq_event( 2 * ONE_SEC, 4 * ONE_SEC, do_hex, data );
+	data.num = 10;
+	bring_timeoutq_current();
+    create_timeoutq_event( 3 * ONE_SEC, 4 * ONE_SEC, do_blink, data );
+    //create_timeoutq_event( 3 * ONE_SEC, 4 * ONE_SEC, do_butter, data );
+	data.num = 0xabcde123;
+	bring_timeoutq_current();
+    create_timeoutq_event( 4 * ONE_SEC, 4 * ONE_SEC, do_hex, data );
+	data.name[0] = 'k';
+	data.name[1] = 'e';
+	data.name[2] = 'r';
+	data.name[3] = 'n';
+	bring_timeoutq_current();
+    create_timeoutq_event( 5 * ONE_SEC, 4 * ONE_SEC, do_string, data);
 
-    uart_puts("Running ECHO server.\n");
+    uart_puts("TQ items created; running loop.\n");
+    uart_puts("\n");
+
+    // run the list
+	extern pfv_t tq_gofunc();
     while (1) {
-		while(1) {
-			if((now_usec()&0x00007000)==0x00007000) {
-			break;
-		}}
-		ch=uart_recv();
-
-		/* Convert to uppercase */
-		if ((ch>='a') && (ch<='z')) ch-=32;
-
-		while(1) {
-			if((now_usec()&0x00007000)==0x00007000) {
-			break;
-		}}
-		PUT32(0x3F215040,ch);
-
-		if (ch < 20) {
-			while(1) {
-				if((now_usec()&0x00007000)==0x00007000) {
-					break;
-			}}
-			PUT32(0x3F215040,0x0A);
+		debug(DEBUG_LOW, "top of loop eventpc = ", (unsigned long)tq_gofunc());
+		if (handle_timeoutq_event()) {
+			debug(DEBUG_LOW, "handled event.", 0);
+			continue;
 		}
+		timeout = bring_timeoutq_current();
+		debug(DEBUG_LOW, "no event. about to wait for = ", (unsigned long)timeout);
+		if (DEBUG_LEVEL >= DEBUG_LOW) {
+			data.num = (unsigned long)get_time();	// since we're not using data anymore
+		}
+		wait(timeout);
+		debug(DEBUG_LOW, "done waiting = ", get_time() - (uint64_t)data.num);
     }
 
-    return(0);
+	return;
+
 }
-
-
-//-------------------------------------------------------------------------
-//
-// Copyright (c) 2016 David Welch dwelch@dwelch.com
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
-//-------------------------------------------------------------------------
