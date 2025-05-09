@@ -18,3 +18,4 @@ extern void create_timeoutq_event( int, int, pfv_t, namenum_t );
 extern int handle_timeoutq_event( void );
 
 #define MIN_TIMEOUT ONE_MSEC
+#define MAX_WAIT (ONE_SEC * 1000)

@@ -59,7 +59,23 @@ init_timeoutq()
 int
 bring_timeoutq_current()
 {
-	// your code goes here
+    uint64_t now_usec = get_time();
+    int dt = (int)(now_usec - then_usec);
+    then_usec = now_usec;
+
+    if (LL_IS_EMPTY(timeoutq)) {
+        return MAX_WAIT;
+    }
+
+    struct event* ep;
+    LL_EACH(timeoutq, ep, struct event) {
+        if (ep->timeout > dt)
+            ep->timeout -= dt;
+        else
+            ep->timeout = 0;
+    }
+
+    return ((struct event *)(LL_HEAD(timeoutq)))->timeout;
 }
 
 
@@ -71,7 +87,36 @@ bring_timeoutq_current()
 void
 create_timeoutq_event(int timeout, int repeat, pfv_t function, namenum_t data)
 {
-	// your code goes here
+    if (LL_IS_EMPTY(freelist)) {
+        return;
+    }
+
+    struct event* ep = (struct event *)LL_POP(freelist);
+    ep->timeout = timeout;
+    ep->repeat_interval = repeat;
+    ep->go = function;
+    ep->data = data;
+
+    if (LL_IS_EMPTY(timeoutq)) {
+        LL_PUSH(timeoutq, ep);
+        return;
+    }
+
+    struct event* head = (struct event *)LL_HEAD(timeoutq);
+    if (head->timeout > ep->timeout) {
+        LL_PUSH(timeoutq, ep);
+        return;
+    }
+
+    struct event* tmp;
+    LL_EACH(timeoutq, tmp, struct event) {
+        if (tmp->timeout > ep->timeout) {
+            LL_L_INSERT(tmp, ep);
+            return;
+        }
+    }
+
+    LL_APPEND(timeoutq, ep);
 }
 
 
@@ -87,7 +132,44 @@ create_timeoutq_event(int timeout, int repeat, pfv_t function, namenum_t data)
 int
 handle_timeoutq_event( )
 {
-	// your code goes here
+    if (LL_IS_EMPTY(timeoutq)) {
+        return 0;
+    }
+    
+    struct event* head = (struct event *)LL_HEAD(timeoutq);
+    if (head->timeout < 10) {
+
+        struct event* ep = (struct event *)LL_POP(timeoutq);
+        ep->go(ep);
+
+        if (ep->repeat_interval == 0) {
+            LL_PUSH(freelist, ep);
+        } else {
+            ep->timeout = ep->repeat_interval;
+            if (LL_IS_EMPTY(timeoutq)) {
+                LL_PUSH(timeoutq, ep);
+                return 1;
+            }
+
+            head = (struct event *)LL_HEAD(timeoutq);
+            if (head->timeout > ep->timeout) {
+                LL_PUSH(timeoutq, ep);
+                return 1;
+            }
+
+            struct event* tmp;
+            LL_EACH(timeoutq, tmp, struct event) {
+                if (tmp->timeout > ep->timeout) {
+                    LL_L_INSERT(tmp, ep);
+                    return 1;
+                }
+            }
+
+            LL_APPEND(timeoutq, ep);
+        }
+        return 1;
+    }
+    return 0;
 }
 
 
